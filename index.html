@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YSRTUBE - Video Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    body { background-color: #030712; color: #ffffff; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .snap-y-mandatory { scroll-snap-type: y mandatory; }
+    .snap-start { scroll-snap-align: start; }
+  </style>
+</head>
+<body class="bg-gray-950 text-white font-sans min-h-screen flex flex-col relative">
+
+  <!-- Header Navigasi -->
+  <header class="sticky top-0 z-40 bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between gap-2">
+    <div class="flex items-center gap-2 cursor-pointer" onclick="switchMode('youtube'); goHomeWithMiniPlayer();">
+      <div class="bg-red-600 text-white p-2 rounded-xl flex items-center justify-center font-bold">
+        <i class="fa-solid fa-play text-lg"></i>
+      </div>
+      <span class="text-xl font-black text-red-500">YSRTUBE</span>
+    </div>
+
+    <div class="flex-1 max-w-xl mx-2">
+      <div class="relative">
+        <input id="searchInput" type="text" placeholder="Cari video & Shorts YouTube..." 
+          class="w-full bg-gray-800 border border-gray-700 rounded-full py-2 pl-4 pr-10 text-sm focus:outline-none focus:border-red-500"
+          onkeypress="if(event.key==='Enter') searchVideos()">
+        <button onclick="searchVideos()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="hidden sm:flex items-center gap-2 text-xs text-gray-400 bg-gray-800 px-3 py-1.5 rounded-full border border-gray-700">
+      <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+      <span>Live Server Sync</span>
+    </div>
+  </header>
+
+  <!-- Mode Switcher -->
+  <div class="bg-gray-900 border-b border-gray-800 px-4 py-2 flex justify-center gap-4 text-sm font-bold">
+    <button id="btnTabYoutube" onclick="switchMode('youtube')" class="px-5 py-1.5 rounded-full bg-red-600 text-white">
+      <i class="fa-solid fa-tv"></i> Mode YouTube
+    </button>
+    <button id="btnTabShorts" onclick="switchMode('shorts')" class="px-5 py-1.5 rounded-full bg-gray-800 text-gray-300">
+      <i class="fa-solid fa-bolt text-red-500"></i> Mode Shorts
+    </button>
+  </div>
+
+  <!-- Main Container -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- YouTube View -->
+    <div id="youtubeView" class="flex-1 overflow-y-auto p-4 max-w-7xl mx-auto w-full">
+      <!-- Category Tags -->
+      <div id="categoryTags" class="flex gap-2 overflow-x-auto pb-4 no-scrollbar text-xs font-medium">
+        <button onclick="filterCategory('Semua')" class="px-4 py-2 rounded-xl bg-white text-black font-semibold">Semua</button>
+        <button onclick="filterCategory('Gaming')" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700">Gaming</button>
+        <button onclick="filterCategory('Tech')" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700">Tech</button>
+        <button onclick="filterCategory('Musik')" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700">Musik</button>
+        <button onclick="filterCategory('Anime')" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700">Anime</button>
+        <button onclick="filterCategory('Edukasi')" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700">Edukasi</button>
+      </div>
+
+      <!-- Video Grid -->
+      <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+
+      <!-- Player Detail View -->
+      <div id="playerDetailView" class="hidden flex-col lg:flex-row gap-6 mt-2">
+        <div class="flex-1">
+          <div class="flex items-center justify-between mb-3">
+            <button onclick="goHomeWithMiniPlayer()" class="text-xs text-gray-300 bg-gray-800 px-3 py-1.5 rounded-xl border border-gray-700 flex items-center gap-2 font-semibold">
+              <i class="fa-solid fa-arrow-left"></i> Kembali (Kecilkan Pemutar)
+            </button>
+            <button onclick="openShareModal(currentVideo ? currentVideo.id : '')" class="text-xs bg-red-600 text-white px-3 py-1.5 rounded-xl font-bold">
+              <i class="fa-solid fa-share-nodes"></i> Bagikan
+            </button>
+          </div>
+
+          <div class="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-gray-800">
+            <iframe id="mainIframe" class="w-full h-full" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>
+
+          <h1 id="detailTitle" class="text-base sm:text-lg font-bold mt-3">Judul Video</h1>
+          
+          <div class="flex flex-wrap items-center justify-between gap-3 mt-3 pb-4 border-b border-gray-800">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center font-bold text-xs uppercase">Y</div>
+              <div>
+                <p id="detailChannel" class="font-semibold text-xs sm:text-sm">Nama Channel</p>
+                <p class="text-[10px] text-gray-400">Terverifikasi YSRTUBE</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button onclick="openDescModal()" class="bg-gray-800 text-xs px-3 py-2 rounded-xl border border-gray-700">
+                <i class="fa-solid fa-align-left text-red-500"></i> Deskripsi
+              </button>
+              <button onclick="openCommentModal(currentVideo ? currentVideo.id : '')" class="bg-gray-800 text-xs px-3 py-2 rounded-xl border border-gray-700">
+                <i class="fa-solid fa-comments text-red-500"></i> Komentar
+              </button>
+              <div class="flex items-center gap-2 bg-gray-800 rounded-xl px-3 py-2 text-xs font-semibold border border-gray-700">
+                <button onclick="likeCount++; document.getElementById('likeNum').innerText=formatNum(likeCount)" class="hover:text-red-500 flex items-center gap-1">
+                  <i class="fa-solid fa-thumbs-up"></i> <span id="likeNum">0</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full lg:w-80 flex flex-col gap-3">
+          <h3 class="font-bold text-sm text-gray-400">Rekomendasi Video</h3>
+          <div id="relatedList" class="flex flex-col gap-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shorts View -->
+    <div id="shortsView" class="hidden flex-1 overflow-y-auto snap-y-mandatory no-scrollbar bg-black justify-center items-center">
+      <div id="shortsContainer" class="w-full max-w-md h-full mx-auto flex flex-col"></div>
+    </div>
+  </main>
+
+  <!-- Floating Mini Player -->
+  <div id="miniPlayer" class="hidden fixed bottom-4 right-4 z-50 w-72 bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+    <div class="relative aspect-video w-full bg-black">
+      <iframe id="miniIframe" class="w-full h-full" src="" frameborder="0" allow="autoplay" allowfullscreen></iframe>
+      <div class="absolute top-2 right-2 flex gap-1 z-10">
+        <button onclick="restoreFullPlayer()" class="bg-black/70 text-white w-7 h-7 rounded-full text-xs flex items-center justify-center">
+          <i class="fa-solid fa-expand"></i>
+        </button>
+        <button onclick="closeMiniPlayer()" class="bg-black/70 text-white w-7 h-7 rounded-full text-xs flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+    <div class="p-2 bg-gray-900 flex justify-between items-center text-xs">
+      <p id="miniTitle" class="font-bold truncate text-gray-200">Judul Video</p>
+    </div>
+  </div>
+
+  <!-- Desc Modal -->
+  <div id="descModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 max-w-md w-full max-h-[70vh] flex flex-col">
+      <div class="flex justify-between items-center pb-3 border-b border-gray-800">
+        <h3 class="font-bold text-sm text-white"><i class="fa-solid fa-circle-info text-red-500"></i> Deskripsi</h3>
+        <button onclick="closeDescModal()" class="text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="modalDescContent" class="overflow-y-auto mt-3 text-xs text-gray-300 whitespace-pre-line"></div>
+    </div>
+  </div>
+
+  <!-- Comment Modal -->
+  <div id="commentModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 max-w-md w-full h-[75vh] flex flex-col">
+      <div class="flex justify-between items-center pb-3 border-b border-gray-800">
+        <h3 class="font-bold text-sm text-white"><i class="fa-solid fa-comments text-red-500"></i> Komentar Live</h3>
+        <button onclick="closeCommentModal()" class="text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="modalCommentsList" class="flex-1 overflow-y-auto mt-3 space-y-3 text-xs no-scrollbar"></div>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="shareModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 max-w-sm w-full">
+      <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+        <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-share-nodes text-red-500"></i> Bagikan</h3>
+        <button onclick="closeShareModal()" class="text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="flex items-center gap-2 mt-3 bg-gray-800 p-2 rounded-xl border border-gray-700">
+        <input id="shareLinkInput" type="text" readonly value="" class="bg-transparent text-xs w-full text-gray-300 focus:outline-none">
+        <button onclick="copyShareLink()" class="bg-red-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg">Salin</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var ADMIN_API_KEY = 'AIzaSyBE5hJMMd2w5BnJPeH9RqtAaAUlP3nJh_s';
+
+    var videos = [
+      { id: 'y62El8ChO0Q', title: 'PLIS JANGAN DIBELI! 7 HP SPEK BADUT PALING LUCU DI TAHUN 2026!', channel: 'Tombol Power', category: 'Tech' },
+      { id: 'Ft1ROWvjcz8', title: 'Rp5 JUTA buat barang yg isinya ga jelas... MYSTERY BOX 2026!', channel: 'GadgetIn', category: 'Tech' },
+      { id: 'nWwEOtQqIRo', title: 'Aku Memulai Hidup Sebagai Penyihir Terkuat di Dunia - Episode 01', channel: 'Muse Indonesia', category: 'Anime' },
+      { id: 'IYEXsQpbIOc', title: 'Genius Yang Menantang Tuhan Lewat Rahasia Alam Semesta! | Stephen Hawking', channel: 'Ardhianzy', category: 'Edukasi' },
+      { id: 'TK4t9SzrWAE', title: 'HP 1 Jutaan ini Punya Spek Dewa?! Tapi... - Review Poco X3 Pro 2026', channel: 'Gizmora Labs', category: 'Tech' }
+    ];
+
+    var shortsList = [
+      { id: 'rS3s9a0l6Gk', title: 'Shorts Epic Gaming Moment', channel: 'GameShorts' },
+      { id: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE Shorts', channel: 'OfficialPSY' },
+      { id: '3JZ_D3ELwOQ', title: 'Cool Tech Gadgets', channel: 'TechShorts' }
+    ];
+
+    var currentVideo = null;
+    var likeCount = 1500;
+
+    function formatNum(num) {
+      return num > 999999 ? (num/1000000).toFixed(1) + 'M' : num > 999 ? (num/1000).toFixed(1) + 'k' : num;
+    }
+
+    function switchMode(mode) {
+      var ytView = document.getElementById('youtubeView');
+      var shView = document.getElementById('shortsView');
+      var btnYt = document.getElementById('btnTabYoutube');
+      var btnSh = document.getElementById('btnTabShorts');
+
+      if (mode === 'youtube') {
+        ytView.classList.remove('hidden');
+        shView.classList.add('hidden');
+        btnYt.className = "px-5 py-1.5 rounded-full bg-red-600 text-white";
+        btnSh.className = "px-5 py-1.5 rounded-full bg-gray-800 text-gray-300";
+      } else {
+        ytView.classList.add('hidden');
+        shView.classList.remove('hidden');
+        btnSh.className = "px-5 py-1.5 rounded-full bg-red-600 text-white";
+        btnYt.className = "px-5 py-1.5 rounded-full bg-gray-800 text-gray-300";
+      }
+    }
+
+    function renderYoutubeGrid(dataList) {
+      var grid = document.getElementById('videoGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      document.getElementById('playerDetailView').classList.add('hidden');
+      document.getElementById('categoryTags').classList.remove('hidden');
+      grid.classList.remove('hidden');
+
+      dataList.forEach(function(vid) {
+        var card = document.createElement('div');
+        card.className = "bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 cursor-pointer flex flex-col group shadow-lg";
+        card.onclick = function() { openVideoPlayer(vid); };
+        card.innerHTML = 
+          '<div class="relative aspect-video bg-gray-800 overflow-hidden">' +
+            '<img src="https://img.youtube.com/vi/' + vid.id + '/hqdefault.jpg" class="w-full h-full object-cover">' +
+          '</div>' +
+          '<div class="p-3.5 flex gap-3">' +
+            '<div class="w-8 h-8 rounded-full bg-red-600 flex-shrink-0 flex items-center justify-center font-bold text-xs uppercase">' + vid.channel[0] + '</div>' +
+            '<div class="flex-1 min-w-0">' +
+              '<h4 class="text-xs font-bold text-white line-clamp-2">' + vid.title + '</h4>' +
+              '<p class="text-[11px] text-gray-400 mt-1">' + vid.channel + '</p>' +
+            '</div>' +
+          '</div>';
+        grid.appendChild(card);
+      });
+    }
+
+    function openVideoPlayer(vid) {
+      currentVideo = vid;
+      closeMiniPlayer();
+
+      document.getElementById('videoGrid').classList.add('hidden');
+      document.getElementById('categoryTags').classList.add('hidden');
+      var detail = document.getElementById('playerDetailView');
+      detail.classList.remove('hidden');
+
+      document.getElementById('mainIframe').src = "https://www.youtube-nocookie.com/embed/" + vid.id + "?autoplay=1";
+      document.getElementById('detailTitle').innerText = vid.title;
+      document.getElementById('detailChannel').innerText = vid.channel;
+
+      var related = document.getElementById('relatedList');
+      related.innerHTML = '';
+      videos.filter(function(v) { return v.id !== vid.id; }).forEach(function(v) {
+        var item = document.createElement('div');
+        item.className = "flex gap-2.5 cursor-pointer bg-gray-900 p-2 rounded-xl border border-gray-800";
+        item.onclick = function() { openVideoPlayer(v); };
+        item.innerHTML = 
+          '<img src="https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg" class="w-28 aspect-video object-cover rounded-lg">' +
+          '<div class="min-w-0 flex-1">' +
+            '<p class="text-xs font-semibold line-clamp-2">' + v.title + '</p>' +
+            '<p class="text-[10px] text-gray-400 mt-1">' + v.channel + '</p>' +
+          '</div>';
+        related.appendChild(item);
+      });
+    }
+
+    function goHomeWithMiniPlayer() {
+      if (currentVideo) {
+        document.getElementById('miniIframe').src = "https://www.youtube-nocookie.com/embed/" + currentVideo.id + "?autoplay=1";
+        document.getElementById('miniTitle').innerText = currentVideo.title;
+        document.getElementById('miniPlayer').classList.remove('hidden');
+      }
+      document.getElementById('mainIframe').src = '';
+      renderYoutubeGrid(videos);
+    }
+
+    function restoreFullPlayer() {
+      if (currentVideo) { openVideoPlayer(currentVideo); }
+    }
+
+    function closeMiniPlayer() {
+      document.getElementById('miniIframe').src = '';
+      document.getElementById('miniPlayer').classList.add('hidden');
+    }
+
+    function renderShortsList() {
+      var container = document.getElementById('shortsContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      shortsList.forEach(function(s) {
+        var shortCard = document.createElement('div');
+        shortCard.className = "w-full h-full snap-start flex-shrink-0 relative bg-gray-900 flex flex-col justify-end p-4 border-b border-gray-800";
+        shortCard.innerHTML = 
+          '<div class="absolute inset-0 z-0">' +
+            '<iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/' + s.id + '?autoplay=0&loop=1" frameborder="0" allowfullscreen></iframe>' +
+          '</div>' +
+          '<div class="relative z-10 flex justify-between items-end gap-4 pointer-events-none">' +
+            '<div class="pointer-events-auto bg-black/70 p-3 rounded-2xl max-w-[80%] border border-gray-800">' +
+              '<p class="font-bold text-xs text-red-400">@' + s.channel + '</p>' +
+              '<p class="text-xs mt-1 line-clamp-2">' + s.title + '</p>' +
+            '</div>' +
+            '<div class="pointer-events-auto flex flex-col gap-4 text-center text-xs font-bold">' +
+              '<button onclick="openCommentModal(\'' + s.id + '\')" class="flex flex-col items-center gap-1 bg-black/70 p-2.5 rounded-full border border-gray-800">' +
+                '<i class="fa-solid fa-comment text-base"></i>' +
+              '</button>' +
+              '<button onclick="openShareModal(\'' + s.id + '\')" class="flex flex-col items-center gap-1 bg-black/70 p-2.5 rounded-full border border-gray-800">' +
+                '<i class="fa-solid fa-share text-base"></i>' +
+              '</button>' +
+            '</div>' +
+          '</div>';
+        container.appendChild(shortCard);
+      });
+    }
+
+    function openCommentModal(videoId) {
+      if (!videoId) return;
+      document.getElementById('commentModal').classList.remove('hidden');
+      var list = document.getElementById('modalCommentsList');
+      list.innerHTML = '<p class="text-center text-gray-500 py-6">Memuat komentar...</p>';
+
+      fetch("https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&maxResults=20&videoId=" + videoId + "&key=" + ADMIN_API_KEY)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          list.innerHTML = '';
+          if (data.items && data.items.length > 0) {
+            data.items.forEach(function(item) {
+              var top = item.snippet.topLevelComment.snippet;
+              var commentEl = document.createElement('div');
+              commentEl.className = "flex gap-2.5 bg-gray-800/60 p-3 rounded-xl border border-gray-800";
+              commentEl.innerHTML = 
+                '<img src="' + top.authorProfileImageUrl + '" class="w-7 h-7 rounded-full flex-shrink-0">' +
+                '<div class="min-w-0 flex-1">' +
+                  '<p class="font-bold text-[11px] text-red-400">' + top.authorDisplayName + '</p>' +
+                  '<p class="text-gray-300 text-xs mt-1 leading-relaxed">' + top.textDisplay + '</p>' +
+                '</div>';
+              list.appendChild(commentEl);
+            });
+          } else {
+            list.innerHTML = '<p class="text-center text-gray-500 py-6">Belum ada komentar.</p>';
+          }
+        }).catch(function() {
+          list.innerHTML = '<p class="text-center text-gray-500 py-6">Gagal memuat komentar.</p>';
+        });
+    }
+
+    function closeCommentModal() { document.getElementById('commentModal').classList.add('hidden'); }
+
+    function openDescModal() {
+      if (!currentVideo) return;
+      document.getElementById('descModal').classList.remove('hidden');
+      var content = document.getElementById('modalDescContent');
+      content.innerText = currentVideo.title + " - Channel: " + currentVideo.channel;
+    }
+
+    function closeDescModal() { document.getElementById('descModal').classList.add('hidden'); }
+
+    function openShareModal(videoId) {
+      if (!videoId) return;
+      var url = "https://www.youtube.com/watch?v=" + videoId;
+      document.getElementById('shareLinkInput').value = url;
+      document.getElementById('shareModal').classList.remove('hidden');
+    }
+
+    function closeShareModal() { document.getElementById('shareModal').classList.add('hidden'); }
+
+    function copyShareLink() {
+      var input = document.getElementById('shareLinkInput');
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      alert('Link disalin!');
+    }
+
+    function searchVideos() {
+      var query = document.getElementById('searchInput').value.trim();
+      if (!query) return;
+
+      fetch("https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=12&q=" + encodeURIComponent(query) + "&type=video&key=" + ADMIN_API_KEY)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.items && data.items.length > 0) {
+            var apiVids = data.items.map(function(item) {
+              return {
+                id: item.id.videoId,
+                title: item.snippet.title,
+                channel: item.snippet.channelTitle,
+                category: 'Hasil Cari'
+              };
+            });
+            renderYoutubeGrid(apiVids);
+          }
+        });
+    }
+
+    function filterCategory(cat) {
+      if (cat === 'Semua') {
+        renderYoutubeGrid(videos);
+      } else {
+        searchVideosByCat(cat);
+      }
+    }
+
+    function searchVideosByCat(cat) {
+      fetch("https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=12&q=" + encodeURIComponent(cat) + "&type=video&key=" + ADMIN_API_KEY)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.items) {
+            var apiVids = data.items.map(function(item) {
+              return {
+                id: item.id.videoId,
+                title: item.snippet.title,
+                channel: item.snippet.channelTitle,
+                category: cat
+              };
+            });
+            renderYoutubeGrid(apiVids);
+          }
+        });
+    }
+
+    // Eksekusi Langsung
+    renderYoutubeGrid(videos);
+    renderShortsList();
+  </script>
+</body>
+</html>
